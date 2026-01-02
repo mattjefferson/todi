@@ -26,7 +26,9 @@ func runAuth(ctx context.Context, state *state, args []string) int {
 		printAuthUsage(state.Out)
 		return 0
 	default:
-		fmt.Fprintln(state.Err, "error: unknown auth command:", args[0])
+		if _, err := fmt.Fprintln(state.Err, "error: unknown auth command:", args[0]); err != nil {
+			return 2
+		}
 		printAuthUsage(state.Err)
 		return 2
 	}
@@ -39,7 +41,9 @@ func runAuthLogin(ctx context.Context, state *state, args []string) int {
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
 	if err := fs.Parse(args); err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		if _, writeErr := fmt.Fprintln(state.Err, "error:", err); writeErr != nil {
+			return 2
+		}
 		return 2
 	}
 	if help {
@@ -47,28 +51,40 @@ func runAuthLogin(ctx context.Context, state *state, args []string) int {
 		return 0
 	}
 	if state.NoInput || !isTTY(os.Stdin) {
-		fmt.Fprintln(state.Err, "error: login requires TTY (disable --no-input)")
+		if _, err := fmt.Fprintln(state.Err, "error: login requires TTY (disable --no-input)"); err != nil {
+			return 2
+		}
 		return 2
 	}
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Fprint(state.Err, "Todoist token: ")
+	if _, err := fmt.Fprint(state.Err, "Todoist token: "); err != nil {
+		return 1
+	}
 	token, err := reader.ReadString('\n')
 	if err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		if _, writeErr := fmt.Fprintln(state.Err, "error:", err); writeErr != nil {
+			return 1
+		}
 		return 1
 	}
 	token = strings.TrimSpace(token)
 	if token == "" {
-		fmt.Fprintln(state.Err, "error: token required")
+		if _, err := fmt.Fprintln(state.Err, "error: token required"); err != nil {
+			return 2
+		}
 		return 2
 	}
 
 	state.Config.Token = token
 	if err := state.Config.Save(state.ConfigPath); err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		if _, writeErr := fmt.Fprintln(state.Err, "error:", err); writeErr != nil {
+			return 1
+		}
 		return 1
 	}
-	fmt.Fprintln(state.Out, "token saved")
+	if _, err := fmt.Fprintln(state.Out, "token saved"); err != nil {
+		return 1
+	}
 	_ = ctx
 	return 0
 }
@@ -76,23 +92,33 @@ func runAuthLogin(ctx context.Context, state *state, args []string) int {
 func runAuthLogout(state *state) int {
 	state.Config.Token = ""
 	if err := state.Config.Save(state.ConfigPath); err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		if _, writeErr := fmt.Fprintln(state.Err, "error:", err); writeErr != nil {
+			return 1
+		}
 		return 1
 	}
-	fmt.Fprintln(state.Out, "token cleared")
+	if _, err := fmt.Fprintln(state.Out, "token cleared"); err != nil {
+		return 1
+	}
 	return 0
 }
 
 func runAuthStatus(state *state) int {
 	envToken := os.Getenv("TODOIST_TOKEN")
 	if envToken != "" {
-		fmt.Fprintln(state.Out, "token set (TODOIST_TOKEN)")
+		if _, err := fmt.Fprintln(state.Out, "token set (TODOIST_TOKEN)"); err != nil {
+			return 1
+		}
 		return 0
 	}
 	if state.Config.Token != "" {
-		fmt.Fprintln(state.Out, "token set (config)")
+		if _, err := fmt.Fprintln(state.Out, "token set (config)"); err != nil {
+			return 1
+		}
 		return 0
 	}
-	fmt.Fprintln(state.Out, "token missing")
+	if _, err := fmt.Fprintln(state.Out, "token missing"); err != nil {
+		return 1
+	}
 	return 3
 }

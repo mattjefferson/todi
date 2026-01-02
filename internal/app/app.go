@@ -13,10 +13,9 @@ import (
 	"github.com/mattjefferson/todoist-cli/internal/todoist"
 )
 
-const Version = "dev"
-
 const defaultAPIBase = "https://api.todoist.com"
 
+// Run executes the CLI entrypoint with the provided args.
 func Run(args []string) int {
 	ctx := context.Background()
 	out := os.Stdout
@@ -27,7 +26,9 @@ func Run(args []string) int {
 		return code
 	}
 	if globals.ShowVersion {
-		fmt.Fprintln(out, Version)
+		if _, err := fmt.Fprintln(out, VersionString()); err != nil {
+			return 1
+		}
 		return 0
 	}
 	if globals.ShowHelp || len(rest) == 0 {
@@ -42,7 +43,9 @@ func Run(args []string) int {
 	if configPath == "" {
 		path, err := config.DefaultPath()
 		if err != nil {
-			fmt.Fprintln(errOut, "error:", err)
+			if _, writeErr := fmt.Fprintln(errOut, "error:", err); writeErr != nil {
+				return 1
+			}
 			return 1
 		}
 		configPath = path
@@ -50,7 +53,9 @@ func Run(args []string) int {
 
 	cfg, err := config.Load(configPath)
 	if err != nil {
-		fmt.Fprintln(errOut, "error:", err)
+		if _, writeErr := fmt.Fprintln(errOut, "error:", err); writeErr != nil {
+			return 1
+		}
 		return 1
 	}
 
@@ -63,7 +68,9 @@ func Run(args []string) int {
 
 	mode, err := parseOutputMode(globals.JSON, globals.Plain)
 	if err != nil {
-		fmt.Fprintln(errOut, "error:", err)
+		if _, writeErr := fmt.Fprintln(errOut, "error:", err); writeErr != nil {
+			return 2
+		}
 		return 2
 	}
 
@@ -90,7 +97,9 @@ func Run(args []string) int {
 		printUsage(out)
 		return 0
 	default:
-		fmt.Fprintln(errOut, "error: unknown command:", rest[0])
+		if _, writeErr := fmt.Fprintln(errOut, "error: unknown command:", rest[0]); writeErr != nil {
+			return 2
+		}
 		printUsage(errOut)
 		return 2
 	}
@@ -152,7 +161,9 @@ func parseGlobal(args []string, errOut io.Writer) (globalFlags, []string, int) {
 	fs.BoolVar(&flags.LabelCLI, "label-cli", false, "Add label 'cli' to created tasks")
 
 	if err := fs.Parse(args); err != nil {
-		fmt.Fprintln(errOut, "error:", err)
+		if _, writeErr := fmt.Fprintln(errOut, "error:", err); writeErr != nil {
+			return globalFlags{}, nil, 2
+		}
 		printUsage(errOut)
 		return globalFlags{}, nil, 2
 	}

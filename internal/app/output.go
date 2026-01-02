@@ -25,14 +25,20 @@ func printTasks(out io.Writer, tasks []todoist.Task, mode outputMode) error {
 		return printJSON(out, payload)
 	case modePlain:
 		for _, task := range tasks {
-			fmt.Fprintf(out, "%s\t%s\t%s\n", task.ID, task.Content, dueSummary(task))
+			if _, err := fmt.Fprintf(out, "%s\t%s\t%s\n", task.ID, task.Content, dueSummary(task)); err != nil {
+				return err
+			}
 		}
 		return nil
 	default:
 		w := tabwriter.NewWriter(out, 0, 4, 2, ' ', 0)
-		fmt.Fprintln(w, "ID\tCONTENT\tDUE")
+		if _, err := fmt.Fprintln(w, "ID\tCONTENT\tDUE"); err != nil {
+			return err
+		}
 		for _, task := range tasks {
-			fmt.Fprintf(w, "%s\t%s\t%s\n", task.ID, task.Content, dueSummary(task))
+			if _, err := fmt.Fprintf(w, "%s\t%s\t%s\n", task.ID, task.Content, dueSummary(task)); err != nil {
+				return err
+			}
 		}
 		return w.Flush()
 	}
@@ -43,11 +49,11 @@ func printTask(out io.Writer, task todoist.Task, mode outputMode) error {
 	case modeJSON:
 		return printJSON(out, task)
 	case modePlain:
-		fmt.Fprintf(out, "%s\t%s\t%s\n", task.ID, task.Content, dueSummary(task))
-		return nil
+		_, err := fmt.Fprintf(out, "%s\t%s\t%s\n", task.ID, task.Content, dueSummary(task))
+		return err
 	default:
-		fmt.Fprintf(out, "ID: %s\nContent: %s\nDue: %s\n", task.ID, task.Content, dueSummary(task))
-		return nil
+		_, err := fmt.Fprintf(out, "ID: %s\nContent: %s\nDue: %s\n", task.ID, task.Content, dueSummary(task))
+		return err
 	}
 }
 

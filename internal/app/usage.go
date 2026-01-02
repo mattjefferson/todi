@@ -6,7 +6,7 @@ import (
 )
 
 func printUsage(out io.Writer) {
-	fmt.Fprintln(out, `todoist - Todoist tasks CLI
+	if _, err := fmt.Fprint(out, `todoist - Todoist tasks CLI
 
 USAGE:
   todoist [global flags] <command> [args]
@@ -32,11 +32,13 @@ GLOBAL FLAGS:
 NOTES:
   Task identifiers accept exact task titles unless --id is set.
   Project references use exact project titles.
-`)
+`); err != nil {
+		return
+	}
 }
 
 func printTaskUsage(out io.Writer) {
-	fmt.Fprintln(out, `todoist task - task commands
+	if _, err := fmt.Fprint(out, `todoist task - task commands
 
 USAGE:
   todoist task list [project_title]
@@ -50,21 +52,25 @@ USAGE:
 
 NOTES:
   <task> accepts exact task title unless --id is set.
-`)
+`); err != nil {
+		return
+	}
 }
 
 func printAuthUsage(out io.Writer) {
-	fmt.Fprintln(out, `todoist auth - auth commands
+	if _, err := fmt.Fprint(out, `todoist auth - auth commands
 
 USAGE:
   todoist auth login
   todoist auth logout
   todoist auth status
-`)
+`); err != nil {
+		return
+	}
 }
 
 func printConfigUsage(out io.Writer) {
-	fmt.Fprintln(out, `todoist config - config commands
+	if _, err := fmt.Fprint(out, `todoist config - config commands
 
 USAGE:
   todoist config get <key>
@@ -78,5 +84,7 @@ KEYS:
   default_project
   default_labels
   label_cli
-`)
+`); err != nil {
+		return
+	}
 }

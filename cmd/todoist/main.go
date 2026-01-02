@@ -1,3 +1,4 @@
+// Command todoist runs the Todoist CLI.
 package main
 
 import (

@@ -52,7 +52,7 @@ func runTask(ctx context.Context, state *state, args []string) int {
 		printTaskUsage(state.Out)
 		return 0
 	default:
-		fmt.Fprintln(state.Err, "error: unknown task command:", args[0])
+		writeLine(state.Err, "error: unknown task command:", args[0])
 		printTaskUsage(state.Err)
 		return 2
 	}
@@ -75,7 +75,7 @@ func runTaskList(ctx context.Context, state *state, args []string) int {
 	fs.BoolVar(&all, "all", false, "Fetch all pages")
 	fs.StringVar(&label, "label", "", "Label name")
 	if err := fs.Parse(args); err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return 2
 	}
 	if help {
@@ -84,7 +84,7 @@ func runTaskList(ctx context.Context, state *state, args []string) int {
 	}
 	if len(fs.Args()) > 0 {
 		if projectName != "" {
-			fmt.Fprintln(state.Err, "error: project specified twice")
+			writeLine(state.Err, "error: project specified twice")
 			return 2
 		}
 		projectName = strings.Join(fs.Args(), " ")
@@ -92,7 +92,7 @@ func runTaskList(ctx context.Context, state *state, args []string) int {
 
 	client, err := state.client()
 	if err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return 1
 	}
 
@@ -109,7 +109,7 @@ func runTaskList(ctx context.Context, state *state, args []string) int {
 	if projectName != "" {
 		projectID, err := client.FindProjectIDByName(ctx, projectName)
 		if err != nil {
-			fmt.Fprintln(state.Err, "error:", err)
+			writeLine(state.Err, "error:", err)
 			return 1
 		}
 		params["project_id"] = projectID
@@ -118,11 +118,11 @@ func runTaskList(ctx context.Context, state *state, args []string) int {
 	if all {
 		tasks, err := client.ListTasksAll(ctx, params)
 		if err != nil {
-			fmt.Fprintln(state.Err, "error:", err)
+			writeLine(state.Err, "error:", err)
 			return 1
 		}
 		if err := printTasks(state.Out, tasks, state.Mode); err != nil {
-			fmt.Fprintln(state.Err, "error:", err)
+			writeLine(state.Err, "error:", err)
 			return 1
 		}
 		return 0
@@ -130,19 +130,19 @@ func runTaskList(ctx context.Context, state *state, args []string) int {
 
 	tasks, next, err := client.ListTasks(ctx, params)
 	if err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return 1
 	}
 	if state.Mode == modeJSON {
 		payload := map[string]any{"results": tasks, "next_cursor": next}
 		if err := printJSON(state.Out, payload); err != nil {
-			fmt.Fprintln(state.Err, "error:", err)
+			writeLine(state.Err, "error:", err)
 			return 1
 		}
 		return 0
 	}
 	if err := printTasks(state.Out, tasks, state.Mode); err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return 1
 	}
 	return 0
@@ -157,7 +157,7 @@ func runTaskGet(ctx context.Context, state *state, args []string) int {
 	fs.BoolVar(&help, "h", false, "Show help")
 	fs.BoolVar(&forceID, "id", false, "Treat argument as task ID")
 	if err := fs.Parse(args); err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return 2
 	}
 	if help {
@@ -165,24 +165,24 @@ func runTaskGet(ctx context.Context, state *state, args []string) int {
 		return 0
 	}
 	if len(fs.Args()) == 0 {
-		fmt.Fprintln(state.Err, "error: task identifier required")
+		writeLine(state.Err, "error: task identifier required")
 		return 2
 	}
 	identifier := strings.Join(fs.Args(), " ")
 
 	client, err := state.client()
 	if err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return 1
 	}
 
 	task, err := resolveTask(ctx, client, identifier, forceID)
 	if err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return 1
 	}
 	if err := printTask(state.Out, task, state.Mode); err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return 1
 	}
 	return 0
@@ -224,7 +224,7 @@ func runTaskAdd(ctx context.Context, state *state, args []string) int {
 	fs.StringVar(&deadlineDate, "deadline-date", "", "Deadline date (YYYY-MM-DD)")
 
 	if err := fs.Parse(args); err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return 2
 	}
 	if help {
@@ -233,19 +233,19 @@ func runTaskAdd(ctx context.Context, state *state, args []string) int {
 	}
 	content := joinArgs(fs.Args())
 	if content == "" {
-		fmt.Fprintln(state.Err, "error: content required")
+		writeLine(state.Err, "error: content required")
 		return 2
 	}
 
 	client, err := state.client()
 	if err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return 1
 	}
 
 	projectIDValue, err := resolveProjectID(ctx, client, projectName, projectID)
 	if err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return 1
 	}
 
@@ -254,11 +254,11 @@ func runTaskAdd(ctx context.Context, state *state, args []string) int {
 		labelsAll = appendUniqueLabel(labelsAll, cliLabel)
 	}
 	if err := validateDueFlags(due, dueDate, dueDatetime); err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return 2
 	}
 	if priority != 0 && (priority < 1 || priority > 4) {
-		fmt.Fprintln(state.Err, "error: priority must be 1-4")
+		writeLine(state.Err, "error: priority must be 1-4")
 		return 2
 	}
 
@@ -302,19 +302,19 @@ func runTaskAdd(ctx context.Context, state *state, args []string) int {
 
 	task, raw, err := client.CreateTask(ctx, body)
 	if err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return 1
 	}
 
 	if state.Mode == modeJSON {
 		if err := printRawJSON(state.Out, raw); err != nil {
-			fmt.Fprintln(state.Err, "error:", err)
+			writeLine(state.Err, "error:", err)
 			return 1
 		}
 		return 0
 	}
 	if err := printTask(state.Out, task, state.Mode); err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return 1
 	}
 	return 0
@@ -356,7 +356,7 @@ func runTaskUpdate(ctx context.Context, state *state, args []string) int {
 	fs.StringVar(&deadlineDate, "deadline-date", "", "Deadline date (YYYY-MM-DD)")
 
 	if err := fs.Parse(args); err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return 2
 	}
 	if help {
@@ -364,18 +364,18 @@ func runTaskUpdate(ctx context.Context, state *state, args []string) int {
 		return 0
 	}
 	if len(fs.Args()) == 0 {
-		fmt.Fprintln(state.Err, "error: task identifier required")
+		writeLine(state.Err, "error: task identifier required")
 		return 2
 	}
 	identifier := strings.Join(fs.Args(), " ")
 
 	labelsAll := mergeLabels(labels, labelsCSV)
 	if err := validateDueFlags(due, dueDate, dueDatetime); err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return 2
 	}
 	if priority != 0 && (priority < 1 || priority > 4) {
-		fmt.Fprintln(state.Err, "error: priority must be 1-4")
+		writeLine(state.Err, "error: priority must be 1-4")
 		return 2
 	}
 
@@ -417,40 +417,40 @@ func runTaskUpdate(ctx context.Context, state *state, args []string) int {
 		body["deadline_date"] = deadlineDate
 	}
 	if len(body) == 0 {
-		fmt.Fprintln(state.Err, "error: no updates specified")
+		writeLine(state.Err, "error: no updates specified")
 		return 2
 	}
 
 	client, err := state.client()
 	if err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return 1
 	}
 
 	id, err := resolveTaskID(ctx, client, identifier, forceID)
 	if err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return 1
 	}
 
 	task, raw, err := client.UpdateTask(ctx, id, body)
 	if err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return 1
 	}
 	if state.Mode == modeJSON {
 		if err := printRawJSON(state.Out, raw); err != nil {
-			fmt.Fprintln(state.Err, "error:", err)
+			writeLine(state.Err, "error:", err)
 			return 1
 		}
 		return 0
 	}
 	if task.ID == "" {
-		fmt.Fprintln(state.Out, "ok")
+		writeLine(state.Out, "ok")
 		return 0
 	}
 	if err := printTask(state.Out, task, state.Mode); err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return 1
 	}
 	return 0
@@ -463,12 +463,14 @@ func runTaskClose(ctx context.Context, state *state, args []string) int {
 	}
 	if state.Mode == modeJSON {
 		if err := printRawJSON(state.Out, raw); err != nil {
-			fmt.Fprintln(state.Err, "error:", err)
+			writeLine(state.Err, "error:", err)
 			return 1
 		}
 		return 0
 	}
-	fmt.Fprintf(state.Out, "closed %s\n", id)
+	if _, err := fmt.Fprintf(state.Out, "closed %s\n", id); err != nil {
+		return 1
+	}
 	return 0
 }
 
@@ -479,12 +481,14 @@ func runTaskReopen(ctx context.Context, state *state, args []string) int {
 	}
 	if state.Mode == modeJSON {
 		if err := printRawJSON(state.Out, raw); err != nil {
-			fmt.Fprintln(state.Err, "error:", err)
+			writeLine(state.Err, "error:", err)
 			return 1
 		}
 		return 0
 	}
-	fmt.Fprintf(state.Out, "reopened %s\n", id)
+	if _, err := fmt.Fprintf(state.Out, "reopened %s\n", id); err != nil {
+		return 1
+	}
 	return 0
 }
 
@@ -495,12 +499,14 @@ func runTaskDelete(ctx context.Context, state *state, args []string) int {
 	}
 	if state.Mode == modeJSON {
 		if err := printRawJSON(state.Out, raw); err != nil {
-			fmt.Fprintln(state.Err, "error:", err)
+			writeLine(state.Err, "error:", err)
 			return 1
 		}
 		return 0
 	}
-	fmt.Fprintf(state.Out, "deleted %s\n", id)
+	if _, err := fmt.Fprintf(state.Out, "deleted %s\n", id); err != nil {
+		return 1
+	}
 	return 0
 }
 
@@ -520,7 +526,7 @@ func runTaskQuick(ctx context.Context, state *state, args []string) int {
 	fs.BoolVar(&meta, "meta", false, "Include metadata")
 
 	if err := fs.Parse(args); err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return 2
 	}
 	if help {
@@ -529,7 +535,7 @@ func runTaskQuick(ctx context.Context, state *state, args []string) int {
 	}
 	text := joinArgs(fs.Args())
 	if text == "" {
-		fmt.Fprintln(state.Err, "error: quick-add text required")
+		writeLine(state.Err, "error: quick-add text required")
 		return 2
 	}
 	if state.LabelCLI {
@@ -538,7 +544,7 @@ func runTaskQuick(ctx context.Context, state *state, args []string) int {
 
 	client, err := state.client()
 	if err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return 1
 	}
 
@@ -558,23 +564,23 @@ func runTaskQuick(ctx context.Context, state *state, args []string) int {
 
 	task, raw, err := client.QuickAdd(ctx, body)
 	if err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return 1
 	}
 
 	if state.Mode == modeJSON {
 		if err := printRawJSON(state.Out, raw); err != nil {
-			fmt.Fprintln(state.Err, "error:", err)
+			writeLine(state.Err, "error:", err)
 			return 1
 		}
 		return 0
 	}
 	if task.ID == "" {
-		fmt.Fprintln(state.Out, "ok")
+		writeLine(state.Out, "ok")
 		return 0
 	}
 	if err := printTask(state.Out, task, state.Mode); err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return 1
 	}
 	return 0
@@ -593,7 +599,7 @@ func taskAction(ctx context.Context, state *state, action string, args []string,
 		fs.BoolVar(&force, "force", false, "Skip confirmation")
 	}
 	if err := fs.Parse(args); err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return "", nil, 2
 	}
 	if help {
@@ -601,26 +607,26 @@ func taskAction(ctx context.Context, state *state, action string, args []string,
 		return "", nil, 0
 	}
 	if len(fs.Args()) == 0 {
-		fmt.Fprintln(state.Err, "error: task identifier required")
+		writeLine(state.Err, "error: task identifier required")
 		return "", nil, 2
 	}
 	identifier := strings.Join(fs.Args(), " ")
 
 	client, err := state.client()
 	if err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return "", nil, 1
 	}
 
 	id, err := resolveTaskID(ctx, client, identifier, forceID)
 	if err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return "", nil, 1
 	}
 
 	if destructive {
 		if err := confirmDestructive(state, identifier, force); err != nil {
-			fmt.Fprintln(state.Err, "error:", err)
+			writeLine(state.Err, "error:", err)
 			return "", nil, 2
 		}
 	}
@@ -637,7 +643,7 @@ func taskAction(ctx context.Context, state *state, action string, args []string,
 		return "", nil, 2
 	}
 	if err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		writeLine(state.Err, "error:", err)
 		return "", nil, 1
 	}
 	return id, raw, 0
@@ -650,7 +656,9 @@ func confirmDestructive(state *state, identifier string, forced bool) error {
 	if state.NoInput || !isTTY(os.Stdin) {
 		return errors.New("confirmation required (use --force)")
 	}
-	fmt.Fprintf(state.Err, "Delete task '%s'? [y/N]: ", identifier)
+	if _, err := fmt.Fprintf(state.Err, "Delete task '%s'? [y/N]: ", identifier); err != nil {
+		return err
+	}
 	var response string
 	if _, err := fmt.Fscanln(os.Stdin, &response); err != nil {
 		return err

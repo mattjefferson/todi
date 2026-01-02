@@ -20,7 +20,9 @@ func runConfig(_ context.Context, state *state, args []string) int {
 	case "set":
 		return runConfigSet(state, args[1:])
 	case "path":
-		fmt.Fprintln(state.Out, state.ConfigPath)
+		if _, err := fmt.Fprintln(state.Out, state.ConfigPath); err != nil {
+			return 1
+		}
 		return 0
 	case "view":
 		return runConfigView(state)
@@ -28,7 +30,9 @@ func runConfig(_ context.Context, state *state, args []string) int {
 		printConfigUsage(state.Out)
 		return 0
 	default:
-		fmt.Fprintln(state.Err, "error: unknown config command:", args[0])
+		if _, err := fmt.Fprintln(state.Err, "error: unknown config command:", args[0]); err != nil {
+			return 2
+		}
 		printConfigUsage(state.Err)
 		return 2
 	}
@@ -41,7 +45,9 @@ func runConfigGet(state *state, args []string) int {
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
 	if err := fs.Parse(args); err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		if _, writeErr := fmt.Fprintln(state.Err, "error:", err); writeErr != nil {
+			return 2
+		}
 		return 2
 	}
 	if help {
@@ -49,27 +55,43 @@ func runConfigGet(state *state, args []string) int {
 		return 0
 	}
 	if len(fs.Args()) == 0 {
-		fmt.Fprintln(state.Err, "error: key required")
+		if _, err := fmt.Fprintln(state.Err, "error: key required"); err != nil {
+			return 2
+		}
 		return 2
 	}
 	key := strings.ToLower(fs.Args()[0])
 	switch key {
 	case "token":
-		fmt.Fprintln(state.Out, state.Config.Token)
+		if _, err := fmt.Fprintln(state.Out, state.Config.Token); err != nil {
+			return 1
+		}
 	case "api_base":
-		fmt.Fprintln(state.Out, state.Config.APIBase)
+		if _, err := fmt.Fprintln(state.Out, state.Config.APIBase); err != nil {
+			return 1
+		}
 	case "default_project":
-		fmt.Fprintln(state.Out, state.Config.Project)
+		if _, err := fmt.Fprintln(state.Out, state.Config.Project); err != nil {
+			return 1
+		}
 	case "default_labels":
-		fmt.Fprintln(state.Out, state.Config.Labels)
+		if _, err := fmt.Fprintln(state.Out, state.Config.Labels); err != nil {
+			return 1
+		}
 	case "label_cli":
 		if state.Config.LabelCLI {
-			fmt.Fprintln(state.Out, "true")
+			if _, err := fmt.Fprintln(state.Out, "true"); err != nil {
+				return 1
+			}
 		} else {
-			fmt.Fprintln(state.Out, "false")
+			if _, err := fmt.Fprintln(state.Out, "false"); err != nil {
+				return 1
+			}
 		}
 	default:
-		fmt.Fprintln(state.Err, "error: unknown key:", key)
+		if _, err := fmt.Fprintln(state.Err, "error: unknown key:", key); err != nil {
+			return 2
+		}
 		return 2
 	}
 	return 0
@@ -82,7 +104,9 @@ func runConfigSet(state *state, args []string) int {
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
 	if err := fs.Parse(args); err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		if _, writeErr := fmt.Fprintln(state.Err, "error:", err); writeErr != nil {
+			return 2
+		}
 		return 2
 	}
 	if help {
@@ -90,13 +114,17 @@ func runConfigSet(state *state, args []string) int {
 		return 0
 	}
 	if len(fs.Args()) < 2 {
-		fmt.Fprintln(state.Err, "error: key and value required")
+		if _, err := fmt.Fprintln(state.Err, "error: key and value required"); err != nil {
+			return 2
+		}
 		return 2
 	}
 	key := strings.ToLower(fs.Args()[0])
 	value := strings.Join(fs.Args()[1:], " ")
 	if key == "token" {
-		fmt.Fprintln(state.Err, "error: set token via 'todoist auth login'")
+		if _, err := fmt.Fprintln(state.Err, "error: set token via 'todoist auth login'"); err != nil {
+			return 2
+		}
 		return 2
 	}
 	switch key {
@@ -109,29 +137,41 @@ func runConfigSet(state *state, args []string) int {
 	case "label_cli":
 		parsed, err := parseBool(value)
 		if err != nil {
-			fmt.Fprintln(state.Err, "error:", err)
+			if _, writeErr := fmt.Fprintln(state.Err, "error:", err); writeErr != nil {
+				return 2
+			}
 			return 2
 		}
 		state.Config.LabelCLI = parsed
 	default:
-		fmt.Fprintln(state.Err, "error: unknown key:", key)
+		if _, err := fmt.Fprintln(state.Err, "error: unknown key:", key); err != nil {
+			return 2
+		}
 		return 2
 	}
 	if err := state.Config.Save(state.ConfigPath); err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		if _, writeErr := fmt.Fprintln(state.Err, "error:", err); writeErr != nil {
+			return 1
+		}
 		return 1
 	}
-	fmt.Fprintln(state.Out, "saved")
+	if _, err := fmt.Fprintln(state.Out, "saved"); err != nil {
+		return 1
+	}
 	return 0
 }
 
 func runConfigView(state *state) int {
 	data, err := os.ReadFile(state.ConfigPath)
 	if err != nil {
-		fmt.Fprintln(state.Err, "error:", err)
+		if _, writeErr := fmt.Fprintln(state.Err, "error:", err); writeErr != nil {
+			return 1
+		}
 		return 1
 	}
-	fmt.Fprintln(state.Out, string(data))
+	if _, err := fmt.Fprintln(state.Out, string(data)); err != nil {
+		return 1
+	}
 	return 0
 }
 

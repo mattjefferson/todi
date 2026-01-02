@@ -1,5 +1,6 @@
 package todoist
 
+// Task represents a Todoist task.
 type Task struct {
 	ID          string   `json:"id"`
 	Content     string   `json:"content"`
@@ -10,6 +11,7 @@ type Task struct {
 	Due         *Due     `json:"due"`
 }
 
+// Due represents a task due date or datetime.
 type Due struct {
 	Date     string `json:"date"`
 	Datetime string `json:"datetime"`
@@ -17,6 +19,7 @@ type Due struct {
 	Timezone string `json:"timezone"`
 }
 
+// Project represents a Todoist project.
 type Project struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`

@@ -14,6 +14,7 @@ import (
 	"time"
 )
 
+// Client wraps Todoist API calls.
 type Client struct {
 	BaseURL string
 	Token   string
@@ -21,6 +22,7 @@ type Client struct {
 	Verbose bool
 }
 
+// NewClient creates a Todoist API client.
 func NewClient(baseURL, token string, verbose bool) *Client {
 	return &Client{
 		BaseURL: strings.TrimRight(baseURL, "/"),
@@ -37,6 +39,7 @@ type listResponse[T any] struct {
 	NextCursor string `json:"next_cursor"`
 }
 
+// ListTasks fetches a page of tasks.
 func (c *Client) ListTasks(ctx context.Context, params map[string]string) ([]Task, string, error) {
 	var resp listResponse[Task]
 	if err := c.get(ctx, "/api/v1/tasks", params, &resp); err != nil {
@@ -45,6 +48,7 @@ func (c *Client) ListTasks(ctx context.Context, params map[string]string) ([]Tas
 	return resp.Results, resp.NextCursor, nil
 }
 
+// ListTasksAll fetches all tasks across pages.
 func (c *Client) ListTasksAll(ctx context.Context, params map[string]string) ([]Task, error) {
 	if params == nil {
 		params = map[string]string{}
@@ -69,18 +73,21 @@ func (c *Client) ListTasksAll(ctx context.Context, params map[string]string) ([]
 	return all, nil
 }
 
+// CreateTask creates a new task.
 func (c *Client) CreateTask(ctx context.Context, body map[string]any) (Task, []byte, error) {
 	var task Task
 	raw, err := c.post(ctx, "/api/v1/tasks", body, &task)
 	return task, raw, err
 }
 
+// UpdateTask updates an existing task.
 func (c *Client) UpdateTask(ctx context.Context, id string, body map[string]any) (Task, []byte, error) {
 	var task Task
 	raw, err := c.post(ctx, "/api/v1/tasks/"+url.PathEscape(id), body, &task)
 	return task, raw, err
 }
 
+// GetTask fetches a task by ID.
 func (c *Client) GetTask(ctx context.Context, id string) (Task, error) {
 	var task Task
 	if err := c.get(ctx, "/api/v1/tasks/"+url.PathEscape(id), nil, &task); err != nil {
@@ -89,18 +96,22 @@ func (c *Client) GetTask(ctx context.Context, id string) (Task, error) {
 	return task, nil
 }
 
+// DeleteTask deletes a task by ID.
 func (c *Client) DeleteTask(ctx context.Context, id string) ([]byte, error) {
 	return c.delete(ctx, "/api/v1/tasks/"+url.PathEscape(id))
 }
 
+// CloseTask completes a task by ID.
 func (c *Client) CloseTask(ctx context.Context, id string) ([]byte, error) {
 	return c.post(ctx, "/api/v1/tasks/"+url.PathEscape(id)+"/close", nil, nil)
 }
 
+// ReopenTask reopens a completed task by ID.
 func (c *Client) ReopenTask(ctx context.Context, id string) ([]byte, error) {
 	return c.post(ctx, "/api/v1/tasks/"+url.PathEscape(id)+"/reopen", nil, nil)
 }
 
+// QuickAdd creates a task using Todoist quick-add syntax.
 func (c *Client) QuickAdd(ctx context.Context, body map[string]any) (Task, []byte, error) {
 	var resp struct {
 		Task Task `json:"task"`
@@ -109,6 +120,7 @@ func (c *Client) QuickAdd(ctx context.Context, body map[string]any) (Task, []byt
 	return resp.Task, raw, err
 }
 
+// ListProjects fetches a page of projects.
 func (c *Client) ListProjects(ctx context.Context, params map[string]string) ([]Project, string, error) {
 	var resp listResponse[Project]
 	if err := c.get(ctx, "/api/v1/projects", params, &resp); err != nil {
@@ -117,6 +129,7 @@ func (c *Client) ListProjects(ctx context.Context, params map[string]string) ([]
 	return resp.Results, resp.NextCursor, nil
 }
 
+// ListProjectsAll fetches all projects across pages.
 func (c *Client) ListProjectsAll(ctx context.Context) ([]Project, error) {
 	params := map[string]string{"limit": "200"}
 	var all []Project
@@ -138,6 +151,7 @@ func (c *Client) ListProjectsAll(ctx context.Context) ([]Project, error) {
 	return all, nil
 }
 
+// FindProjectIDByName returns the project ID for a unique project name.
 func (c *Client) FindProjectIDByName(ctx context.Context, name string) (string, error) {
 	projects, err := c.ListProjectsAll(ctx)
 	if err != nil {
@@ -158,6 +172,7 @@ func (c *Client) FindProjectIDByName(ctx context.Context, name string) (string, 
 	return matches[0].ID, nil
 }
 
+// FindTaskByContent returns the task for a unique content match.
 func (c *Client) FindTaskByContent(ctx context.Context, title string) (Task, error) {
 	tasks, err := c.ListTasksAll(ctx, nil)
 	if err != nil {
@@ -248,13 +263,17 @@ func (c *Client) url(path string, params map[string]string) (string, error) {
 func (c *Client) do(req *http.Request, out any) ([]byte, error) {
 	req.Header.Set("Authorization", "Bearer "+c.Token)
 	if c.Verbose {
-		fmt.Fprintf(os.Stderr, "%s %s\n", req.Method, req.URL.String())
+		writef(os.Stderr, "%s %s\n", req.Method, req.URL.String())
 	}
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			return
+		}
+	}()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
