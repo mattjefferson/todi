@@ -11,6 +11,7 @@ USAGE:
 COMMANDS:
   task    Manage tasks
   project Manage projects
+  comment Manage comments
   auth    Manage auth token
   config  Manage config
 

@@ -14,6 +14,7 @@ USAGE:
 COMMANDS:
   task    Manage tasks
   project Manage projects
+  comment Manage comments
   auth    Manage auth token
   config  Manage config
 
@@ -65,6 +66,23 @@ USAGE:
   todoist auth login
   todoist auth logout
   todoist auth status
+`); err != nil {
+		return
+	}
+}
+
+func printCommentUsage(out io.Writer) {
+	if _, err := fmt.Fprint(out, `todoist comment - comment commands
+
+USAGE:
+  todoist comment list --task <title>
+  todoist comment list --task-id <id>
+  todoist comment list --project <title>
+  todoist comment list --project-id <id>
+  todoist comment get <comment_id>
+  todoist comment add <content>
+  todoist comment update <comment_id> --content <text>
+  todoist comment delete <comment_id>
 `); err != nil {
 		return
 	}
